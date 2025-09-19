@@ -7,11 +7,17 @@ OCR sisteminin çalışmasını test etmek için "/images" klasörü içerisinde
 
 Web uygulaması üzerinden kullanmak için server.py dosyasını çalıştırın ve ardından web uygulaması üzerinden yükleyeceğiniz görsel verileri işlenecektir. Her işlemin çıktısı farkı bir "jobID" ile "/outputs_job" dizininde oluşacak ve web uygulamasına yansıyacaktır.
 
+Sistemde en az bir adet ADMIN bulunması gerekmektedir. Bu yetkilendirmeyi ilk kullanıcıyı oluşturduktan sonra veri tabanı üzerinden yetkiyi USER > ADMIN yapmayı unutmayın.
+
+# Türkçe Açıklama
+
 # Usage (English)
 
 To test the OCR system, move the images you want from the "/images" folder to the "/images/test" folder and run the OCR.py file. The outputs will be created in the "/outputs" directory.
 
 To use it via the web application, run the server.py file and then the visual data you will upload via the web application will be processed. The output of each process will be created in the "/outputs_job" directory with a different "jobID" and will be reflected in the web application.
+
+There must be at least one ADMIN in the system. After creating the first user, do not forget to authorize the user from the database as USER > ADMIN.
 
 # English Description
 # Production Data Tracking System (Spring Boot) + Slab OCR Pipeline (Python/YOLOv8s)
