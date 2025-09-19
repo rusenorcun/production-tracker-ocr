@@ -5,13 +5,18 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
+# --- Path Definitions ---
+# Get the directory where this script is located. This makes paths robust.
+SCRIPT_DIR = Path(__file__).resolve().parent
+
 # ================== DEFAULTS ==================
-IMAGES_DIR = "images/test"
-OUTPUT_DIR = "outputs"
+IMAGES_DIR = SCRIPT_DIR / "images/test"
+OUTPUT_DIR = SCRIPT_DIR / "outputs"
 CSV_NAME   = "results.csv"
 
-DIGIT_MODEL_PATH = "weights/digit_best.pt"
-ROI_MODEL_PATH   = "weights/roi_best.pt"
+# Default model paths are now absolute, relative to this script's location.
+DIGIT_MODEL_PATH = SCRIPT_DIR / "weights/digit_best.pt"
+ROI_MODEL_PATH   = SCRIPT_DIR / "weights/roi_best.pt"
 
 CONF_DIGIT = 0.1
 CONF_ROI   = 0.6
@@ -236,9 +241,16 @@ def process_image_to_csv(img_path, csv_writer, output_dir=OUTPUT_DIR,
 
         # ROI etiketi
         if draw_index:
-            draw_text(img, f"#{idx}", (int(rx1), int(ry1)+22),
-                      font_scale=0.7, color=COLOR_INDEX, thickness=2, with_bg=False)
-
+            # ROI indeksini kutunun sağ üst köşesine yaz
+            index_text = f"#{idx}"
+            font_scale = 0.7
+            thickness = 2
+            (text_w, text_h), _ = cv2.getTextSize(index_text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness)
+            padding = 5
+            pos_x = int(rx2 - text_w - padding)
+            pos_y = int(ry1 + text_h + padding)
+            draw_text(img, index_text, (pos_x, pos_y),
+                      font_scale=font_scale, color=COLOR_INDEX, thickness=thickness, with_bg=False)
         # Metni ROI üstüne yaz
         draw_text(img, text if text else "-", (int(rx1), max(15,int(ry1)-6)),
                   font_scale=0.75, color=COLOR_TEXT, thickness=2, with_bg=True)

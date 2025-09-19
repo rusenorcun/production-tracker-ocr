@@ -8,14 +8,20 @@ import uvicorn
 
 from OCR import (
     ensure_models, run_single, csv_to_json,
-    DIGIT_MODEL_PATH, ROI_MODEL_PATH
+    DIGIT_MODEL_PATH, ROI_MODEL_PATH # These are now absolute paths from OCR.py
 )
 
+# --- Path Definitions ---
+# Get the directory where this script is located to make paths robust.
+SCRIPT_DIR = Path(__file__).resolve().parent
+
 API_TOKEN = os.getenv("API_TOKEN")  # optional: basit bearer kontrol
-OUTPUT_ROOT = Path(os.getenv("OUTPUT_ROOT", "outputs_jobs"))
+# The output directory should also be relative to the script's location.
+OUTPUT_ROOT = Path(os.getenv("OUTPUT_ROOT", SCRIPT_DIR / "outputs_jobs"))
 OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
 
-# modelleri hazırla (ilk istekten önce de yükleyebiliriz)
+# Modelleri hazırla. OCR.py'dan gelen yollar artık mutlak (absolute) olduğu için
+# bu kodun nereden çalıştırıldığı fark etmez.
 ensure_models(
     os.getenv("DIGIT_MODEL_PATH", DIGIT_MODEL_PATH),
     os.getenv("ROI_MODEL_PATH", ROI_MODEL_PATH)
