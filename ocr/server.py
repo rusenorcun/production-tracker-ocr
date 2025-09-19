@@ -1,9 +1,10 @@
 # server.py
 import os, uuid, time
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File, HTTPException, Header
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security.api_key import APIKeyHeader
 import uvicorn
 
 from OCR import (
@@ -15,7 +16,11 @@ from OCR import (
 # Get the directory where this script is located to make paths robust.
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-API_TOKEN = os.getenv("API_TOKEN")  # optional: basit bearer kontrol
+API_TOKEN = os.getenv("API_TOKEN")
+if not API_TOKEN:
+    # Geliştirme ortamında token olmadan çalışabilmesi için uyarı veriyoruz.
+    print("UYARI: API_TOKEN ortam değişkeni ayarlanmamış. Servis korumasız çalışacak.")
+
 # The output directory should also be relative to the script's location.
 OUTPUT_ROOT = Path(os.getenv("OUTPUT_ROOT", SCRIPT_DIR / "outputs_jobs"))
 OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -36,6 +41,14 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"],
 )
 
+API_KEY_NAME = "X-API-Token"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
+
+async def get_api_key(api_key: str = Security(api_key_header)):
+    if api_key == API_TOKEN:
+        return api_key
+    raise HTTPException(status_code=403, detail="Geçersiz veya eksik API Anahtarı")
+
 @app.get("/health")
 def health():
     return {"ok": True}
@@ -44,6 +57,8 @@ def health():
 @app.post("/process")
 async def process_image(
     file: UploadFile = File(...),
+    # Bu bağımlılık sadece API_TOKEN ortam değişkeni ayarlıysa aktif olur.
+    api_key: str = Depends(get_api_key) if API_TOKEN else None,
 ):
     try:
         # job klasörü

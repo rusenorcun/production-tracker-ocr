@@ -38,8 +38,8 @@ public class UserService {
         if (rawPassword == null || rawPassword.isBlank()) {
             throw new IllegalArgumentException("Şifre boş olamaz.");
         }
-        if (rawPassword.length() < 4) {
-            throw new IllegalArgumentException("Şifre en az 4 karakter olmalı.");
+        if (rawPassword.length() < 6) {
+            throw new IllegalArgumentException("Şifre en az 6 karakter olmalı.");
         }
 
         String uname = username.trim();
@@ -91,8 +91,8 @@ public class UserService {
         if (newPassword == null || newPassword.isBlank()) {
             throw new IllegalArgumentException("Yeni şifre boş olamaz.");
         }
-        if (newPassword.length() < 4) {
-            throw new IllegalArgumentException("Yeni şifre en az 4 karakter olmalı.");
+        if (newPassword.length() < 6) {
+            throw new IllegalArgumentException("Yeni şifre en az 6 karakter olmalı.");
         }
         
         User u = userRepository.findById(userId)

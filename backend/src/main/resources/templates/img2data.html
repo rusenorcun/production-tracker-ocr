@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", function(){
             <button id="btnSelectAll" class="btn btn-outline-secondary btn-sm" type="button">
               <i class="bi bi-check2-square"></i> Tümünü Seç
             </button>
-            <button id="btnSave" class="btn btn-success btn-sm"  type="button" disabled>
+            <button id="btnSave" class="btn btn-success btn-sm" type="button" disabled sec:authorize="hasAnyRole('OPERATOR','ADMIN')">
               <i class="bi bi-save2"></i> Seçileni Kaydet
             </button>
           </div>

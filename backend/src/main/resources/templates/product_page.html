@@ -105,10 +105,12 @@
           <input type="number" id="pressureValuePlate" class="form-control plates-field d-none" placeholder="Basınç">
           <input type="number" id="lvdt" class="form-control plates-field d-none" placeholder="LVDT">
 
-          <button type="submit" class="btn btn-success">Kaydet</button>
-          <button type="button" id="clearBtn" class="btn btn-secondary">Temizle</button>
-          <button type="button" id="btnDelete" class="btn btn-danger d-none">Kaydı Sil</button>
-          <button type="button" id="btnBulkDelete" class="btn btn-danger ms-2 d-none">Toplu Sil</button>
+          <span sec:authorize="hasAnyRole('ADMIN', 'OPERATOR')">
+            <button type="submit" class="btn btn-success">Kaydet</button>
+            <button type="button" id="clearBtn" class="btn btn-secondary">Temizle</button>
+            <button type="button" id="btnDelete" class="btn btn-danger d-none">Kaydı Sil</button>
+            <button type="button" id="btnBulkDelete" class="btn btn-danger ms-2 d-none">Toplu Sil</button>
+          </span>
         </form>
       </div>
 
