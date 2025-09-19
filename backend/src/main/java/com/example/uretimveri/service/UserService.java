@@ -137,9 +137,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<User> listUsers() {
         return userRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
-                .stream()
-                .filter(java.util.Objects::nonNull)            // null satırları at
-                .toList();
+                .stream().toList(); // JPA reposu null eleman içeren liste döndürmez.
     }
 
     @Transactional

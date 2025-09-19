@@ -67,12 +67,9 @@ public class ProductService {
             throw new EntityNotFoundException("Product bulunamadı: " + id);
         }
 
-        // Alt tablolarda 1-1 (MapsId) kayıt varsa önce onları sil
-        // Not: Bu kısım ON DELETE CASCADE yoksa gereklidir.
-        hotCoilRepo.findById(id).ifPresent(h -> hotCoilRepo.deleteById(id));
-        coldCoilRepo.findById(id).ifPresent(c -> coldCoilRepo.deleteById(id));
-        platesRepo.findById(id).ifPresent(pl -> platesRepo.deleteById(id));
-
+        // Veritabanında ON DELETE CASCADE tanımlı olduğu varsayılarak,
+        // alt tabloları manuel silmeye gerek yoktur. JPA bunu yönetir.
+        // Eğer cascade yoksa, bu yaklaşım DataIntegrityViolationException fırlatacaktır.
         try {
             repo.deleteById(id);
         } catch (DataIntegrityViolationException ex) {
