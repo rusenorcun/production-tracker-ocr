@@ -9,7 +9,6 @@ Web uygulaması üzerinden kullanmak için server.py dosyasını çalıştırın
 
 Sistemde en az bir adet ADMIN bulunması gerekmektedir. Bu yetkilendirmeyi ilk kullanıcıyı oluşturduktan sonra veri tabanı üzerinden yetkiyi USER > ADMIN yapmayı unutmayın.
 
-# Türkçe Açıklama
 
 # Usage (English)
 
