@@ -14,7 +14,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/admin")
 public class AdminController {
 
-    private final UserService adminService;
+    private final UserService userService;
 
     @GetMapping({"", "/"})
     @PreAuthorize("hasRole('ADMIN')")
@@ -25,7 +25,7 @@ public class AdminController {
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public String usersPage(Model model) {
-        model.addAttribute("users", adminService.listUsers());
+        model.addAttribute("users", userService.listUsers());
         return "admin_panel"; // src/main/resources/templates/admin_panel.html
     }
 
@@ -36,7 +36,7 @@ public class AdminController {
                              Authentication auth,
                              RedirectAttributes ra) {
         try {
-            adminService.changeUserRole(auth.getName(), targetUserId, newPermissionRaw);
+            userService.changeUserRole(auth.getName(), targetUserId, newPermissionRaw);
             ra.addFlashAttribute("success", "Yetki güncellendi.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             ra.addFlashAttribute("error", e.getMessage());
@@ -52,7 +52,7 @@ public class AdminController {
                              Authentication auth,
                              RedirectAttributes ra) {
         try {
-            adminService.deleteUser(auth.getName(), targetUserId);
+            userService.deleteUser(auth.getName(), targetUserId);
             ra.addFlashAttribute("success", "Kullanıcı silindi.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             ra.addFlashAttribute("error", e.getMessage());

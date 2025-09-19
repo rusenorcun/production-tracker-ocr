@@ -10,7 +10,7 @@ IMAGES_DIR = "images/test"
 OUTPUT_DIR = "outputs"
 CSV_NAME   = "results.csv"
 
-DIGIT_MODEL_PATH = "weights/digit2.pt"
+DIGIT_MODEL_PATH = "weights/digit_best.pt"
 ROI_MODEL_PATH   = "weights/roi_best.pt"
 
 CONF_DIGIT = 0.1
