@@ -1,0 +1,5 @@
+{"properties": [{
+  "name": "python.api.token",
+  "type": "java.lang.String",
+  "description": "A description for 'python.api.token'"
+}]}

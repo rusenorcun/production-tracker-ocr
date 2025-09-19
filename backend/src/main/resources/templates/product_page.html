@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ürün Yönetimi</title>
+
+  <!-- DataTables + Bootstrap -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <!-- Toastify (toast.js) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"/>
+  <link rel="stylesheet" href="/css/toastify-custom.css"/>
+  <link rel="stylesheet" href="/css/product.css"/>
+  <!-- CSRF -->
+  <meta name="_csrf" th:content="${_csrf.token}">
+  <meta name="_csrf_header" th:content="${_csrf.headerName}">
+
+</head>
+<body>
+
+<!-- Arkaplan -->
+<div class="bg-wrap" th:style="|background-image: url('@{/img/homepage_img2.jpeg}');|"></div>
+<div class="bg-dim"></div>
+
+<main class="frame" role="main" aria-label="Ürün Yönetimi">
+  <!-- DESKTOP: Sol yan menü -->
+  <aside class="left">
+    <div class="top-actions">
+      <a th:href="@{/}" class="btn btn-outline-primary w-100"><i class="bi bi-house me-2"></i>Ana Sayfa</a>
+      <a th:href="@{/profile}" class="btn btn-outline-secondary w-100"><i class="bi bi-person-circle me-2"></i>Profil</a>
+      <a th:href="@{/img2data}" class="btn btn-outline-sky w-100"><i class="bi bi-camera me-2"></i>Görüntüden Veri Al</a>
+      <a th:href="@{/admin/users}" class="btn btn-outline-danger w-100" sec:authorize="hasRole('ADMIN')"><i class="bi bi-shield-lock me-2"></i>Admin Paneli</a>
+    </div>
+    <div class="spacer"></div>
+    <form th:action="@{/logout}" method="post">
+      <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+      <button type="submit" class="btn btn-danger w-100"><i class="bi bi-box-arrow-right me-2"></i>Çıkış Yap</button>
+    </form>
+  </aside>
+
+  <!-- İçerik -->
+  <section class="right">
+    <!-- MOBİL: İnce üst toolbar (desktop’ta gizli) -->
+    <div class="topbar">
+      <div class="d-flex flex-wrap gap-2">
+        <a th:href="@{/}" class="btn btn-outline-primary btn-sm"><i class="bi bi-house"></i>Ana Sayfa</a>
+        <a th:href="@{/profile}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-person-circle"></i>Profil</a>
+        <a th:href="@{/img2data}" class="btn btn-outline-sky btn-sm"><i class="bi bi-camera"></i> Görüntüden Veri Al</a>
+        <a th:href="@{/admin/users}" class="btn btn-outline-danger btn-sm" sec:authorize="hasRole('ADMIN')"><i class="bi bi-shield-lock"></i>Admin</a>
+      </div>
+      <div class="ms-auto">
+        <form th:action="@{/logout}" method="post" class="m-0">
+          <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+          <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-box-arrow-right"></i> Çıkış</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="container-inner">
+      <div class="block card-anim">
+        <h4 class="mb-3">Ürün Ekle / Güncelle</h4>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <label for="tableSelector" class="form-label mb-0">Tablo Seç:</label>
+            <select id="tableSelector" class="form-select" style="width:220px;">
+              <option value="products" selected>Products</option>
+              <option value="cold_coil">Cold Coil</option>
+              <option value="hot_coil">Hot Coil</option>
+              <option value="plates">Plates</option>
+            </select>
+          </div>
+        </div>
+
+        <form id="dynamicForm" class="form-inline">
+          <input type="text" id="recordId" class="form-control common-field" placeholder="ID" readonly>
+          <input type="text" id="provider" class="form-control product-field" placeholder="Tedarikçi" value="İsdemir">
+
+          <!-- Sadece products seçiliyken görünür ve required -->
+          <select id="productType" name="productType" class="form-select product-field d-none" required>
+            <option value="" disabled selected>Ürün Tipi Seç</option>
+            <option value="cold_coil">Cold Coil</option>
+            <option value="hot_coil">Hot Coil</option>
+            <option value="plates">Plates</option>
+          </select>
+
+          <input type="text" id="material" class="form-control product-field" placeholder="Malzeme">
+          <input type="text" id="status" class="form-control product-field" placeholder="Durum">
+
+          <!-- Cold Coil alanları -->
+          <input type="number" id="loadCell" class="form-control cold-coil-field d-none" placeholder="Load Cell">
+          <input type="number" id="irPiroCold" class="form-control cold-coil-field d-none" placeholder="IR Piro">
+          <input type="number" id="termokup" class="form-control cold-coil-field d-none" placeholder="Termokup">
+
+          <!-- Hot Coil alanları -->
+          <input type="number" id="lazerDistance" class="form-control hot-coil-field d-none" placeholder="Lazer Mesafe">
+          <input type="number" id="irPiroHot" class="form-control hot-coil-field d-none" placeholder="IR Piro">
+          <label for="pressureValueHot" class="visually-hidden">Basınç</label><input type="number" id="pressureValueHot" class="form-control hot-coil-field d-none" placeholder="Basınç">
+
+          <!-- Plates alanları -->
+          <input type="number" id="speedValue" class="form-control plates-field d-none" placeholder="Hız">
+          <input type="number" id="pressureValuePlate" class="form-control plates-field d-none" placeholder="Basınç">
+          <input type="number" id="lvdt" class="form-control plates-field d-none" placeholder="LVDT">
+
+          <button type="submit" class="btn btn-success">Kaydet</button>
+          <button type="button" id="clearBtn" class="btn btn-secondary">Temizle</button>
+          <button type="button" id="btnDelete" class="btn btn-danger d-none">Kaydı Sil</button>
+          <button type="button" id="btnBulkDelete" class="btn btn-danger ms-2 d-none">Toplu Sil</button>
+        </form>
+      </div>
+
+      <div class="block card-anim">
+        <h4 class="mb-3">Tablo</h4>
+        <div class="table-responsive">
+          <table id="dataTable" class="table table-striped align-middle" style="width:100%">
+            <thead><tr id="tableHeader"></tr></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- JS -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+<!-- Toastify -->
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+<script>
+  /* ========== CSRF yardımcıları ========== */
+  function getCookie(name){
+    const m = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return m ? decodeURIComponent(m[2]) : null;
+  }
+  function addCsrf(xhr){
+    const metaToken = document.querySelector('meta[name="_csrf"]')?.getAttribute('content');
+    const metaHeader = document.querySelector('meta[name="_csrf_header"]')?.getAttribute('content');
+    if (metaToken && metaHeader) { xhr.setRequestHeader(metaHeader, metaToken); return; }
+    const cookieToken = getCookie('XSRF-TOKEN');
+    if (cookieToken) xhr.setRequestHeader('X-XSRF-TOKEN', cookieToken);
+  }
+
+  /* ========== Toast helper ========== */
+  function notify(type, message, duration=2500){
+    const colors = {
+      success: "linear-gradient(135deg, #28a745, #5bd48b)",
+      info:    "linear-gradient(135deg, #17a2b8, #63d2e6)",
+      warn:    "linear-gradient(135deg, #ffc107, #ffd256)",
+      error:   "linear-gradient(135deg, #dc3545, #ff6b7a)"
+    };
+    Toastify({
+      text: message,
+      duration: duration,
+      gravity: "top",
+      position: "right",
+      close: true,
+      stopOnFocus: true,
+      style: { background: colors[type] || colors.info, color:"#fff", boxShadow:"0 8px 18px rgba(0,0,0,.15)" }
+    }).showToast();
+  }
+
+  /* ========== Global AJAX setup (CSRF + Hata eşleme) ========== */
+  $.ajaxSetup({
+    beforeSend: function (xhr) { addCsrf(xhr); },
+    error: function (xhr) {
+      if (xhr.status === 401 || xhr.status === 403) {
+        notify('error', 'Yetkiniz yok.');
+      } else if (xhr.status === 404) {
+        notify('warn', 'Kayıt bulunamadı.');
+      } else if (xhr.status === 409) {
+        notify('error', 'İlişkili veriler nedeniyle işlem yapılamadı.');
+      } else {
+        notify('error', 'Hata oluştu.');
+      }
+    }
+  });
+
+  /* ========== Yardımcılar ========== */
+  function typeLabel(code){
+    if (!code) return "";
+    const c = String(code).toLowerCase();
+    if (c === 'hot_coil')  return 'Sıcak Bobin';
+    if (c === 'cold_coil') return 'Soğuk Bobin';
+    if (c === 'plates')    return 'Slab';
+    return code;
+  }
+
+  function fmtDate(v) {
+    if (!v) return "";
+    const s = String(v).replace(' ', 'T');
+    const d = new Date(s);
+    if (isNaN(d.getTime())) return v;
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+</script>
+
+<script th:inline="none">
+  $(function () {
+    /* ========== Durum ==========
+       Seçimler, tablo adı, DataTable ref, vs.
+    ================================== */
+    let currentTable = "products";
+    let selectedId = null;
+    let table;
+    const selectedIds = new Set();
+
+    /* Alan etiketleri ve kolon konfig */
+    const labels = {
+      productId: "Ürün ID",
+      provider: "Tedarikçi",
+      productType: "Ürün Tipi",
+      material: "Malzeme",
+      status: "Durum",
+      loadCell: "Load Cell",
+      irPiro: "IR Piro",
+      termokup: "Termokup",
+      lazerDistance: "Lazer Mesafe",
+      pressureValue: "Basınç",
+      speedValue: "Hız",
+      lvdt: "LVDT",
+      createdAt: "Oluşturulma Tarihi"
+    };
+
+    const columnsByTable = {
+      products:  ["productId", "provider", "productType", "material", "status", "createdAt"],
+      cold_coil: ["productId", "loadCell", "irPiro", "termokup", "createdAt"],
+      hot_coil:  ["productId", "lazerDistance", "irPiro", "pressureValue", "createdAt"],
+      plates:    ["productId", "speedValue", "pressureValue", "lvdt", "createdAt"]
+    };
+
+    const deleteEndpoints = {
+      products:  "/api/products/",
+      cold_coil: "/api/cold_coil/",
+      hot_coil:  "/api/hot_coil/",
+      plates:    "/api/plates/"
+    };
+
+    /* ========== UI yardımcıları ========== */
+    function updateActionButtons(){
+      if (selectedIds.size > 0) {
+        $('#btnBulkDelete').removeClass('d-none');
+        $('#btnDelete').addClass('d-none');
+      } else if (selectedId) {
+        $('#btnDelete').removeClass('d-none');
+        $('#btnBulkDelete').addClass('d-none');
+      } else {
+        $('#btnDelete').addClass('d-none');
+        $('#btnBulkDelete').addClass('d-none');
+      }
+    }
+
+    function toggleFormFields(tableName) {
+      $('.product-field, .cold-coil-field, .hot-coil-field, .plates-field').addClass('d-none');
+      if (tableName === 'products') {
+        $('.product-field').removeClass('d-none');
+        $('#productType').prop('required', true);
+      } else {
+        $('#productType').prop('required', false);
+      }
+      if (tableName === 'cold_coil') $('.cold-coil-field').removeClass('d-none');
+      if (tableName === 'hot_coil')  $('.hot-coil-field').removeClass('d-none');
+      if (tableName === 'plates')    $('.plates-field').removeClass('d-none');
+    }
+
+    function fillForm(data, tableName) {
+      if (tableName === 'products') {
+        $('#provider').val(data.provider || "");
+        $('#productType').val(data.productType || "");
+        $('#material').val(data.material || "");
+        $('#status').val(data.status || "");
+      }
+      if (tableName === 'cold_coil') {
+        $('#loadCell').val(data.loadCell ?? "");
+        $('#irPiroCold').val(data.irPiro ?? "");
+        $('#termokup').val(data.termokup ?? "");
+      }
+      if (tableName === 'hot_coil') {
+        $('#lazerDistance').val(data.lazerDistance ?? "");
+        $('#irPiroHot').val(data.irPiro ?? "");
+        $('#pressureValueHot').val(data.pressureValue ?? "");
+      }
+      if (tableName === 'plates') {
+        $('#speedValue').val(data.speedValue ?? "");
+        $('#pressureValuePlate').val(data.pressureValue ?? "");
+        $('#lvdt').val(data.lvdt ?? "");
+      }
+    }
+
+    function clearForm() {
+      $('#dynamicForm')[0].reset();
+      $('#provider').val("İsdemir");
+      $('#recordId').val("");
+      selectedId = null;
+      $('#btnDelete').addClass('d-none');
+    }
+
+    function clearSelection(){
+      selectedIds.clear();
+      updateHeaderCheckboxState();
+    }
+
+    function normalizeRows(tableName, rows) {
+      const allowed = columnsByTable[tableName] || [];
+      return (rows || []).map(src => {
+        const r = { ...src };
+        if (tableName === 'hot_coil') {
+          if (r.id != null && r.productId == null) r.productId = r.id;
+        }
+        delete r.id;
+        delete r.product;
+        if (tableName !== 'products') delete r.status;
+        const out = {};
+        allowed.forEach(k => { out[k] = r[k] ?? null; });
+        return out;
+      });
+    }
+
+    /* ========== Header checkbox durumu ========== */
+    function updateHeaderCheckboxState(){
+      const $thead = $('#dataTable thead');
+      const $chk = $thead.find('#chkAll');
+      if (!table || $chk.length === 0) return;
+
+      const rows = table.rows({ page: 'current', search: 'applied' }).nodes();
+      const $checks = $(rows).find('input.row-select');
+      if ($checks.length === 0) { $chk.prop('indeterminate', false).prop('checked', false); return; }
+
+      const total = $checks.length;
+      const checked = $checks.filter(':checked').length;
+      $chk.prop('checked', checked === total);
+      $chk.prop('indeterminate', checked > 0 && checked < total);
+    }
+
+    /* ========== Tabloyu yükle ========== */
+    function buildColumns(tableName) {
+      const keys = columnsByTable[tableName];
+
+      $('#tableHeader').empty()
+        .append(`<th style="width:34px"><input type="checkbox" id="chkAll" aria-label="Hepsini seç"></th>`);
+      keys.forEach(k => $('#tableHeader').append(`<th>${labels[k] || k}</th>`));
+
+      const cols = [{
+        data: null, orderable: false, searchable: false, className: 'text-center',
+        render: (data, type, row) => {
+          const pid = row.productId ?? '';
+          const checked = selectedIds.has(pid) ? 'checked' : '';
+          return `<input type="checkbox" class="row-select" data-id="${pid}" ${checked} aria-label="Satırı seç">`;
+        }
+      }];
+
+      keys.forEach(k => {
+        if (k === 'createdAt') {
+          cols.push({ data: k, title: labels[k] || k, render: (data) => fmtDate(data) });
+        } else if (k === 'productType') {
+          cols.push({ data: k, title: labels[k] || k, render: (data) => typeLabel(data) });
+        } else {
+          cols.push({ data: k, title: labels[k] || k });
+        }
+      });
+      return cols;
+    }
+
+    function loadTable(tableName) {
+      if ($.fn.DataTable.isDataTable('#dataTable')) {
+        $('#dataTable').DataTable().clear().destroy();
+      }
+      $('#dataTable thead').html('<tr id="tableHeader"></tr>');
+
+      $.ajax({
+        url: `/api/${tableName}/all`,
+        method: "GET",
+        success: function (raw) {
+          const data = normalizeRows(tableName, raw || []);
+          const cols = buildColumns(tableName);
+
+          table = $('#dataTable').DataTable({
+            data: data,
+            columns: cols,
+            autoWidth: false,
+            order: [[1, 'asc']],
+            scrollX: true,
+            initComplete: function(){
+              updateHeaderCheckboxState();
+            }
+          });
+
+          // Satır tıklama -> form doldurma
+          $('#dataTable tbody').off('click', 'tr').on('click', 'tr', function (e) {
+            if ($(e.target).is('input.row-select')) return;
+            const rowData = table.row(this).data();
+            if (!rowData) return;
+            selectedId = rowData.productId;
+            $('#recordId').val(selectedId);
+            $('#btnDelete').removeClass('d-none');
+            fillForm(rowData, currentTable);
+            updateActionButtons();
+          });
+
+          // Satır checkbox değişimi
+          $('#dataTable tbody').off('change', 'input.row-select')
+            .on('change', 'input.row-select', function(){
+              const id = $(this).data('id');
+              if ($(this).is(':checked')) selectedIds.add(id); else selectedIds.delete(id);
+              updateHeaderCheckboxState();
+              updateActionButtons();
+            });
+
+          // Çizim sonrası (sayfa değiştirme/filtre vb.)
+          table.on('draw', function(){
+            const rows = table.rows({ page: 'current', search: 'applied' }).nodes();
+            $(rows).find('input.row-select').each(function(){
+              const id = $(this).data('id');
+              $(this).prop('checked', selectedIds.has(id));
+            });
+            updateHeaderCheckboxState();
+          });
+
+          updateHeaderCheckboxState();
+        }
+      });
+    }
+
+    /* ========== Başlat ========== */
+    toggleFormFields(currentTable);
+    loadTable(currentTable);
+    updateActionButtons();
+
+    /* ========== Olaylar ========== */
+    // Hepsini seç checkbox'ı
+    $('#dataTable thead').on('change', '#chkAll', function() {
+        const checked = $(this).is(':checked');
+        const rows = table.rows({ page: 'current', search: 'applied' }).nodes();
+        $(rows).find('input.row-select').each(function() {
+            const id = $(this).data('id');
+            $(this).prop('checked', checked);
+            if (checked) {
+                selectedIds.add(id);
+            } else {
+                selectedIds.delete(id);
+            }
+        });
+        updateHeaderCheckboxState();
+        updateActionButtons();
+    });
+
+    $('#tableSelector').on('change', function () {
+      currentTable = $(this).val();
+      clearSelection();
+      loadTable(currentTable);
+      toggleFormFields(currentTable);
+      clearForm();
+      updateActionButtons();
+    });
+
+    $('#clearBtn').on('click', function () {
+      clearForm();
+      updateActionButtons();
+      notify('info','Form temizlendi.');
+    });
+
+    $('#dynamicForm').on('submit', function (e) {
+      e.preventDefault();
+      let formData = {};
+      let url = "";
+      let method = selectedId ? "PUT" : "POST";
+
+      if (currentTable === 'products') {
+        const type = $('#productType').val();
+        if (!type) { notify('warn', 'Ürün tipi seçilmelidir.'); return; }
+        formData = {
+          provider: $('#provider').val(),
+          productType: type,
+          material: $('#material').val(),
+          status: $('#status').val()
+        };
+        url = selectedId ? `/api/products/update/${selectedId}` : `/api/products/add`;
+      } else if (currentTable === 'cold_coil') {
+        formData = { loadCell: $('#loadCell').val(), irPiro: $('#irPiroCold').val(), termokup: $('#termokup').val(), productType: "cold_coil" };
+        url = selectedId ? `/api/cold_coil/update/${selectedId}` : `/api/cold_coil/add`;
+      } else if (currentTable === 'hot_coil') {
+        formData = { lazerDistance: $('#lazerDistance').val(), irPiro: $('#irPiroHot').val(), pressureValue: $('#pressureValueHot').val(), productType: "hot_coil" };
+        url = selectedId ? `/api/hot_coil/update/${selectedId}` : `/api/hot_coil/add`;
+      } else if (currentTable === 'plates') {
+        formData = { speedValue: $('#speedValue').val(), pressureValue: $('#pressureValuePlate').val(), lvdt: $('#lvdt').val(), productType: "plates" };
+        url = selectedId ? `/api/plates/update/${selectedId}` : `/api/plates/add`;
+      }
+
+      $.ajax({
+        url: url,
+        type: method,
+        contentType: "application/json",
+        data: JSON.stringify(formData),
+        success: function () {
+          notify('success', 'İşlem başarılı!');
+          loadTable(currentTable);
+          clearForm();
+          updateActionButtons();
+        }
+      });
+    });
+
+    $('#btnDelete').on('click', function(){
+      if (!selectedId) { notify('warn','Silinecek kayıt seçili değil.'); return; }
+      const ok = confirm('Emin misiniz? Bu işlem geri alınamaz.');
+      if (!ok) return;
+
+      const delUrlBase = deleteEndpoints[currentTable];
+      if (!delUrlBase) { notify('error','Silme uç noktası tanımsız.'); return; }
+
+      $.ajax({
+        url: delUrlBase + selectedId,
+        type: 'DELETE',
+        success: function(){
+          notify('success','Kayıt silindi.');
+          selectedIds.delete(String(selectedId));
+          selectedIds.delete(Number(selectedId));
+          loadTable(currentTable);
+          clearForm();
+          updateActionButtons();
+        }
+      });
+    });
+
+    $('#btnBulkDelete').on('click', function(){
+      const ids = Array.from(selectedIds).map(v => Number(v)).filter(n => !isNaN(n));
+      if (ids.length === 0) { notify('info',"Seçim yok."); return; }
+      const ok = confirm(`${ids.length} kayıt silinecek. Emin misiniz?`);
+      if (!ok) return;
+
+      $.ajax({
+        url: '/api/products/bulk-delete',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ ids }),
+        success: function(){
+          notify('success','Seçilen kayıtlar silindi.');
+          clearSelection();
+          loadTable(currentTable);
+          clearForm();
+          updateActionButtons();
+        }
+      });
+    });
+
+  });
+</script>
+</body>
+</html>

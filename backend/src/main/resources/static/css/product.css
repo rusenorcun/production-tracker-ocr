@@ -1,0 +1,114 @@
+:root{
+      --overlay: rgba(0,0,0,.28);
+      --shadow: 0 10px 24px rgba(0,0,0,.25);
+      --border: #e7eaf0;
+      --sky-500:#7EC8E3; /* su mavisi */
+      --sky-600:#64B7D8; /* hover/active biraz daha koyu */
+    }
+    html, body { height:100%; background: transparent; overflow:hidden; }
+
+    .btn-outline-sky{
+      color:#0F5F85;                 /* yazı */
+      border:1.5px solid var(--sky-500);
+      background:transparent;
+    }
+    .btn-outline-sky:hover,
+    .btn-outline-sky:focus{
+      color:#fff;
+      background:var(--sky-500);
+      border-color:var(--sky-500);
+    }
+    .btn-outline-sky:active,
+    .btn-outline-sky.active,
+    .show>.btn-outline-sky.dropdown-toggle{
+      color:#fff;
+      background:var(--sky-600);
+      border-color:var(--sky-600);
+    }
+    .btn-outline-sky:focus-visible{
+      box-shadow:0 0 0 .25rem rgba(126,200,227,.35);
+    }
+    .btn-outline-sky.disabled,
+    .btn-outline-sky:disabled{
+      color:var(--sky-500);
+      background:transparent;
+    }
+
+    .bg-wrap{
+      position:fixed; inset:0; z-index:0;
+      background-size: cover; background-position:center; background-repeat:no-repeat;
+      filter: blur(8px) saturate(1.05);
+      animation: bg-blur 900ms ease-out forwards;
+      will-change: filter;
+    }
+    .bg-dim{
+      position:fixed; inset:0; z-index:1;
+      background: var(--overlay);
+      animation: bg-fade 900ms ease-out forwards;
+    }
+    @keyframes bg-blur{ from{filter: blur(0px) saturate(1.05);} to{filter: blur(8px) saturate(1.05);} }
+    @keyframes bg-fade{ from{background: rgba(0,0,0,.15);} to{background: var(--overlay);} }
+
+    /* Çerçeve: desktop = 2 sütun; mobil = 1 sütun (aside gizli) */
+    .frame{
+      position:fixed; inset:12%;
+      background:#ffffff; border-radius:18px; box-shadow: var(--shadow);
+      display:grid; grid-template-columns: 1.2fr 3.8fr; /* desktop: sol menü + içerik */
+      overflow:hidden;
+      transform: scale(1.05); opacity:0;
+      animation: frame-in 600ms cubic-bezier(.2,.8,.2,1) 150ms forwards;
+      z-index:2;
+    }
+    @keyframes frame-in{ from{transform: scale(1.10); opacity:.0;} to{transform: scale(1.00); opacity:1;} }
+
+    /* Sol yan menü (sadece desktop) */
+    .left{
+      background: linear-gradient(180deg,#fbfbfe,#f3f5fa);
+      border-right:1px solid var(--border);
+      padding:20px; display:flex; flex-direction:column; gap:12px;
+    }
+    .left .top-actions{display:flex; flex-direction:column; gap:10px;}
+    .spacer{flex:1;}
+
+    /* İçerik */
+    .right{
+      padding:22px; overflow:auto; display:flex; flex-direction:column; gap:16px;
+    }
+
+    /* Mobil üst toolbar (yalnız mobilde görünür) */
+    .topbar{
+      position:sticky; top:0; z-index:3;
+      display:none; /* desktop’ta KAPALI */
+      align-items:center; gap:8px; padding:8px 12px;
+      background: rgba(255,255,255,.85); backdrop-filter: saturate(1.2) blur(8px);
+      border-bottom:1px solid var(--border);
+      margin:-22px -22px 12px -22px; /* right bölümünde padding’i dengele */
+    }
+    .topbar .btn { padding: .25rem .5rem; } /* ince butonlar */
+    .topbar .btn i { margin-right:.35rem; }
+
+    /* Kart/blok görünümü */
+    .container-inner { display:flex; flex-direction:column; gap:16px; }
+    .block { background: #fff; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); padding: 18px; }
+    .block h4 { margin:0 0 12px 0; }
+
+    .form-inline { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-inline .form-control, .form-inline .form-select { width: 180px; }
+
+    th input[type="checkbox"] { transform: scale(1.05); }
+    td.text-center { vertical-align: middle; }
+
+    .card-anim{ transform: translateY(8px); opacity:0; animation: card-in 480ms ease-out 240ms forwards; }
+    @keyframes card-in{ to{ transform: translateY(0); opacity:1; } }
+
+    /* —— Mobil kırılımlar —— */
+    @media (max-width: 992px){
+      .frame{ inset:8%; grid-template-columns: 1fr; } /* içerik tek sütun */
+      .left{ display:none; }                           /* aside’ı gizle */
+      .right{ padding:22px; }                          /* içerik padding kalsın */
+      .topbar{ display:flex; }                         /* mobilde üst bar AÇIK */
+    }
+    @media (max-width: 576px){
+      .form-inline .form-control,
+      .form-inline .form-select { width: 100% !important; }
+    }

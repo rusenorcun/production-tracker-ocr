@@ -1,0 +1,65 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Java / Maven / Gradle
+target/
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+.gradle/
+build/
+*.log
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# Python
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Env & secrets
+.env
+*.env
+
+# OCR outputs (ignore et)
+ocr/outputs/
+ocr/outputs_jobs/
+**/outputs/
+**/results.csv
+
+# Spring Boot configuration (real secrets)
+application.properties
+application.yml
+
+# STS (Spring Tool Suite)
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+/build/
+/!**/src/main/**/build/
+/!**/src/test/**/build/
+
+# MODELS (takip edilsin)
+# ocr/weights/ klasörü takipte olacak, bu yüzden burayı ignore etme!
+# Eğer büyük dosya (örn. >100MB) ağırlık varsa GitHub push’ta sorun çıkarabilir.
+# O durumda Git LFS kullanmak gerekebilir.

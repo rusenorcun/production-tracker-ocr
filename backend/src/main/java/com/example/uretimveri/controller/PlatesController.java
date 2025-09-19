@@ -1,0 +1,81 @@
+package com.example.uretimveri.controller;
+
+import com.example.uretimveri.model.Plates;
+import com.example.uretimveri.repository.PlatesRepository;
+import com.example.uretimveri.service.PlatesService;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/plates")
+public class PlatesController {
+
+    private final PlatesService service;
+    private final PlatesRepository platesRepository;
+
+    public PlatesController(PlatesService service, PlatesRepository platesRepository) {
+        this.service = service;
+        this.platesRepository = platesRepository;
+    }
+
+    @GetMapping("/all")
+    public List<Plates> all() {
+        return platesRepository.findAllWithProduct();
+    }
+    /** Şu anki UI: yeni Product oluştur + Plates bağla */
+    @PostMapping("/add")
+    public ResponseEntity<?> add(@RequestBody Plates plates) {
+        try {
+            Plates saved = service.createWithNewProduct(plates);
+            return ResponseEntity.ok(saved);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); // 409
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Kayıt sırasında hata oluştu: " + e.getMessage());
+        }
+    }
+
+    /** İhtiyaç olursa: mevcut Product'a 1-1 Plates ekle */
+    @PostMapping("/add/{productId}")
+    public ResponseEntity<?> addForExisting(@PathVariable Long productId, @RequestBody Plates plates) {
+        try {
+            Plates saved = service.createForExistingProduct(productId, plates);
+            return ResponseEntity.ok(saved);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); // 404
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); // 409
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Kayıt hatası");
+        }
+    }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody Plates updated) {
+        try {
+            Plates updatedPlates = service.update(id, updated);
+            return ResponseEntity.ok(updatedPlates);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Plates not found");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Güncelleme hatası");
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        try {
+            service.delete(id);
+            return ResponseEntity.noContent().build(); // 204
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.notFound().build();   // 404
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(409).build();  // 409 (ilişkili veri vs.)
+        }
+    }
+}

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>IMG2DATA • LVDT Yükleme</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- Bootstrap 5 + Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"/>
+  <link href="/css/img2data.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<script>
+// Toastr varsayılan ayarları
+toastr.options = {
+  "positionClass": "toast-top-right",
+  "closeButton": true,
+  "progressBar": true,
+  "timeOut": "4000",
+  "extendedTimeOut": "2000",
+  "preventDuplicates": true
+};
+
+// Tek noktadan kullanılacak helper
+function showForbiddenToast(){
+  toastr.error("Yetkiniz yok, lütfen yöneticinize danışın.", "403 - Erişim Engellendi");
+}
+
+// jQuery AJAX kullanan isteklerde 403 yakala (DataTables vb. için)
+$(document).ajaxError(function(_evt, xhr){
+  if (xhr && xhr.status === 403) {
+    showForbiddenToast();
+  }
+});
+
+// fetch kullanan isteklerde 403 yakala
+(function(){
+  const _origFetch = window.fetch;
+  window.fetch = async function(){
+    const res = await _origFetch.apply(this, arguments);
+    if (res && res.status === 403) {
+      showForbiddenToast();
+    }
+    return res;
+  };
+})();
+
+// Sunucu klasik form postunu 403 için geri yönlendirirse (?denied=1),
+document.addEventListener("DOMContentLoaded", function(){
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("denied") === "1") {
+    showForbiddenToast();
+    // URL’i temizlemek istersen:
+    // window.history.replaceState({}, document.title, window.location.pathname);
+  }
+});
+</script>
+</head>
+<body>
+
+<div class="bg-wrap"></div>
+<div class="bg-dim"></div>
+
+<main class="frame" role="main" aria-label="IMG2DATA – LVDT Yükleme">
+
+  <!-- SOL: yükleme -->
+  <aside class="left">
+    <div>
+      <h1 class="brand-title h5"><i class="bi bi-boxes me-2"></i>Görsel Üzerinden Okuma</h1>
+
+      <div class="card">
+        <div class="card-body">
+          <div id="dropzone" class="dropzone" aria-label="Görsel bırakma alanı">
+            <div class="mb-2"><i class="bi bi-cloud-upload fs-3 text-primary"></i></div>
+            <p class="mb-2">Görseli buraya sürükleyip bırakın</p>
+            <div class="dz-actions">
+              <button id="btnPickGallery" class="btn btn-outline-primary btn-sm" sec:authorize="hasAnyRole('OPERATOR','ADMIN')" type="button">
+                <i class="bi bi-images"></i> Galeriden Seç
+              </button>
+              <button id="btnPickCamera" class="btn btn-outline-primary btn-sm" sec:authorize="hasAnyRole('OPERATOR','ADMIN')" type="button">
+                <i class="bi bi-camera"></i> Kamera Aç
+              </button>
+              <button id="btnClear" class="btn btn-outline-secondary btn-sm" type="button">
+                <i class="bi bi-x-circle"></i> Temizle
+              </button>
+            </div>
+          </div>
+
+          <!-- gizli input (yalnızca buton tetikler) -->
+          <input id="fileInputGallery" type="file" accept="image/*" hidden>
+          <input id="fileInputCamera" type="file" accept="image/*" capture="environment" hidden>
+
+          <div class="preview-row">
+            <div class="preview" id="preview" aria-live="polite"></div>
+            <div class="lvdt-chips" id="lvdtChips"></div>
+          </div>
+
+          <div class="d-grid mt-3">
+            <button id="btnSend" class="btn btn-primary" sec:authorize="hasAnyRole('OPERATOR','ADMIN')" type="button">
+              <span class="spinner-border spinner-border-sm me-1 d-none" id="btnSpin"></span>
+              <i class="bi bi-rocket-takeoff me-1"></i> Gönder
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- SAĞ: topbar + tespitler + sonuç -->
+  <section class="right">
+    <div class="right-topbar">
+      <a href="/products" class="btn btn-outline-dark btn-sm">
+        <i class="bi bi-box-arrow-left me-1"></i> Ürünler
+      </a>
+    </div>
+
+    <!-- Tespitler -->
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="mb-0">Tespitler</h6>
+          <div class="d-flex gap-2">
+            <button id="btnSelectAll" class="btn btn-outline-secondary btn-sm" type="button">
+              <i class="bi bi-check2-square"></i> Tümünü Seç
+            </button>
+            <button id="btnSave" class="btn btn-success btn-sm"  type="button" disabled>
+              <i class="bi bi-save2"></i> Seçileni Kaydet
+            </button>
+          </div>
+        </div>
+        <div id="detectWrap" class="table-responsive d-none">
+          <table class="table table-sm table-striped align-middle" id="detectTable">
+            <thead class="table-light">
+              <tr><th style="width:42px;"></th><th>#ROI</th><th>Ham Metin</th><th>LVDT (seçili)</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="text-muted small" id="detectEmpty">Henüz tespit yok. Sol taraftan görsel yükleyip “Gönder”e basın.</div>
+      </div>
+    </div>
+
+    <!-- Sonuç -->
+    <div class="card result-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-clipboard-check"></i>
+        <span>Sonuç</span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle result-table">
+            <tbody id="summaryBody">
+              <tr><th style="width:180px;">Durum</th><td id="statusCell" class="text-muted">Hazır</td></tr>
+              <tr><th>Job ID</th><td id="jobCell" class="text-muted">—</td></tr>
+              <tr><th>Tespit (adet)</th><td id="detCell" class="text-muted">0</td></tr>
+              <tr><th>Kaydedilen (adet)</th><td id="saveCell" class="text-muted">0</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-responsive mt-2 d-none" id="createdWrap">
+          <table class="table table-bordered table-striped table-sm">
+            <thead>
+              <tr class="table-light"><th style="width:180px;">product_id</th><th>lvdt</th></tr>
+            </thead>
+            <tbody id="createdBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Kamera Modal -->
+<div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="cameraModalLabel">Kamera</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body p-0 text-center bg-dark">
+        <video id="cameraFeed" playsinline autoplay style="width: 100%; height: auto; max-height: 70vh;"></video>
+        <canvas id="cameraCanvas" class="d-none"></canvas>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+        <button type="button" id="snapPhotoBtn" class="btn btn-primary"><i class="bi bi-camera-fill"></i> Fotoğraf Çek</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* '1234|5678' metninden LVDT üret: 10–18 haneli ilk parça; yoksa parçaları birleştir. */
+function parseLvdt(text){
+  if(!text) return null;
+  const parts = String(text).split('|').map(p => (p ?? '').replace(/\D/g, '')).filter(Boolean);
+  if (!parts.length) return null;
+  const firstLong = parts.find(p => p.length >= 10 && p.length <= 18);
+  const val = firstLong ?? parts.join('');
+  return val.length ? val : null;
+}
+
+(() => {
+  // DOM
+  const inputGallery = document.getElementById('fileInputGallery');
+  const inputCamera = document.getElementById('fileInputCamera');
+  const btnPickGallery = document.getElementById('btnPickGallery');
+  const btnPickCamera = document.getElementById('btnPickCamera');
+  const drop = document.getElementById('dropzone');
+  const preview = document.getElementById('preview');
+  const lvdtChips = document.getElementById('lvdtChips');
+  const btnSend = document.getElementById('btnSend');
+  const btnSpin = document.getElementById('btnSpin');
+
+  // Kamera Modal DOM
+  const cameraModalEl = document.getElementById('cameraModal');
+  const cameraFeed = document.getElementById('cameraFeed');
+  const cameraCanvas = document.getElementById('cameraCanvas');
+  const snapPhotoBtn = document.getElementById('snapPhotoBtn');
+  const cameraModal = cameraModalEl ? new bootstrap.Modal(cameraModalEl) : null;
+
+  const statusCell = document.getElementById('statusCell');
+  const jobCell = document.getElementById('jobCell');
+  const detCell = document.getElementById('detCell');
+  const saveCell = document.getElementById('saveCell');
+
+  const detectWrap = document.getElementById('detectWrap');
+  const detectTableBody = document.querySelector('#detectTable tbody');
+  const detectEmpty = document.getElementById('detectEmpty');
+  const btnSave = document.getElementById('btnSave');
+  const btnSelectAll = document.getElementById('btnSelectAll');
+  const createdBody = document.getElementById('createdBody');
+  const createdWrap = document.getElementById('createdWrap');
+
+  // Durum
+  let file = null;
+  let detections = [];
+  let cameraStream = null;
+
+  function setStatus(text, type){
+    statusCell.className = '';
+    statusCell.textContent = text;
+    if (type === 'ok') statusCell.classList.add('text-success');
+    else if (type === 'err') statusCell.classList.add('text-danger');
+    else statusCell.classList.add('text-muted');
+  }
+
+  function resetUI() {
+    preview.innerHTML = '';
+    lvdtChips.innerHTML = '';
+    jobCell.textContent = '—';
+    detCell.textContent = '0';
+    saveCell.textContent = '0';
+    setStatus('Hazır', 'muted');
+    file = null;
+    btnSend.disabled = true;
+
+    detections = [];
+    detectTableBody.innerHTML = '';
+    detectWrap.classList.add('d-none');
+    detectEmpty.classList.remove('d-none');
+    btnSave.disabled = true;
+    createdBody.innerHTML = '';
+    createdWrap.classList.add('d-none');
+  }
+
+  function showPreview(f){
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => URL.revokeObjectURL(url);
+    img.src = url;
+    img.alt = 'Önizleme';
+    preview.innerHTML = '';
+    preview.appendChild(img);
+  }
+
+  function acceptFiles(files){
+    if (!files || !files.length) return;
+    const f = files[0];
+    const okType = /^image\/(jpe?g|png|bmp|webp)$/i.test(f.type) || /\.(jpe?g|png|bmp|webp)$/i.test(f.name);
+    if (!okType) { setStatus('Yalnızca görsel dosyalar desteklenir.', 'err'); return; }
+    if (f.size > 20 * 1024 * 1024) { setStatus('Dosya 20MB sınırını aşıyor.', 'err'); return; }
+    file = f;
+    showPreview(f);
+    btnSend.disabled = false;
+    setStatus('Göndermeye hazır', 'ok');
+    // aynı dosyayı tekrar seçebilmek için resetle
+    inputGallery.value = '';
+    inputCamera.value = '';
+  }
+
+  function renderChipsAll(items){
+    lvdtChips.innerHTML = '';
+    items.forEach(it => {
+      const span = document.createElement('span');
+      span.className = 'chip';
+      span.textContent = it.lvdt ?? '—';
+      lvdtChips.appendChild(span);
+    });
+  }
+
+  function renderDetections(items){
+    detections = (items || []).map(it => ({
+      roiIndex: it.roiIndex ?? it.roi_index ?? null,
+      text: it.text ?? '',
+      lvdt: (it.lvdt != null && it.lvdt !== '') ? it.lvdt : parseLvdt(it.text ?? '')
+    }));
+
+    renderChipsAll(detections);
+
+    detectTableBody.innerHTML = '';
+    if (!detections.length){
+      detectWrap.classList.add('d-none');
+      detectEmpty.classList.remove('d-none');
+      btnSave.disabled = true;
+      return;
+    }
+    detectWrap.classList.remove('d-none');
+    detectEmpty.classList.add('d-none');
+
+    const anyLvdt = detections.some(d => d.lvdt != null && d.lvdt !== '');
+    btnSave.disabled = !anyLvdt;
+
+    detections.forEach((it, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="form-check-input rowCheck" type="checkbox" data-idx="${idx}" ${it.lvdt ? 'checked' : ''}></td>
+        <td>${it.roiIndex ?? '-'}</td>
+        <td><code>${it.text ?? ''}</code></td>
+        <td><strong>${it.lvdt ?? '—'}</strong></td>
+      `;
+      detectTableBody.appendChild(tr);
+    });
+  }
+
+  function getSelectedLvdts(){
+    const checks = Array.from(document.querySelectorAll('.rowCheck'));
+    const selected = checks
+      .filter(c => c.checked)
+      .map(c => detections[+c.dataset.idx]?.lvdt)
+      .filter(v => v != null && v !== '');
+    return Array.from(new Set(selected)); // tekilleştir
+  }
+
+  // --- Kamera Fonksiyonları (Desktop + Modern Mobil) ---
+  function stopCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream = null;
+    }
+  }
+
+  async function openDesktopCamera() {
+    if (!cameraModal) {
+      console.error("Kamera modal'ı bulunamadı. Fallback to input.");
+      inputCamera.click();
+      return;
+    }
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' } // Mobil için arka kamerayı tercih et
+      });
+      cameraFeed.srcObject = cameraStream;
+      cameraModal.show();
+    } catch (err) {
+      console.error("Kamera erişim hatası:", err);
+      setStatus('Kamera açılamadı. İzinleri kontrol edin.', 'err');
+      inputCamera.click(); // Hata durumunda dosya seçiciye fallback
+    }
+  }
+
+  if (cameraModalEl) {
+    cameraModalEl.addEventListener('hidden.bs.modal', stopCamera);
+  }
+
+  if (snapPhotoBtn) {
+    snapPhotoBtn.addEventListener('click', () => {
+      if (!cameraStream) return;
+      const context = cameraCanvas.getContext('2d');
+      cameraCanvas.width = cameraFeed.videoWidth;
+      cameraCanvas.height = cameraFeed.videoHeight;
+      context.drawImage(cameraFeed, 0, 0, cameraCanvas.width, cameraCanvas.height);
+
+      cameraCanvas.toBlob(blob => {
+        if (blob) {
+          const photoFile = new File([blob], "camera-shot.jpg", { type: "image/jpeg" });
+          acceptFiles([photoFile]);
+        }
+        cameraModal.hide();
+      }, 'image/jpeg');
+    });
+  }
+
+  // --- Dosya Seç/Kamera Aç butonları ---
+  btnPickGallery.addEventListener('click', () => inputGallery.click());
+  btnPickCamera.addEventListener('click', () => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      openDesktopCamera();
+    } else {
+      inputCamera.click(); // Eski tarayıcılar için fallback
+    }
+  });
+  inputGallery.addEventListener('change', () => acceptFiles(inputGallery.files));
+  inputCamera.addEventListener('change', () => acceptFiles(inputCamera.files));
+
+  // Drag & Drop (sadece sürükle-bırak, dropzone click kaldırıldı)
+  drop.addEventListener('dragover', (e)=>{ e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', ()=> drop.classList.remove('dragover'));
+  drop.addEventListener('drop', (e)=>{
+    e.preventDefault(); drop.classList.remove('dragover');
+    acceptFiles(e.dataTransfer.files);
+  });
+
+  document.getElementById('btnClear').addEventListener('click', resetUI);
+
+  // Tümünü Seç
+  btnSelectAll.addEventListener('click', () => {
+    const checks = document.querySelectorAll('.rowCheck');
+    const allOn = Array.from(checks).every(c => c.checked);
+    checks.forEach(c => c.checked = !allOn);
+  });
+
+  // Gönder (tanı)
+  btnSend.addEventListener('click', async ()=>{
+    if (!file) return;
+
+    try {
+      btnSend.disabled = true; btnSpin.classList.remove('d-none');
+      setStatus('Gönderiliyor…', 'muted');
+
+      const fd = new FormData();
+      fd.append('file', file, file.name);
+
+      const xsrf = (document.cookie || '').split('; ').find(x => x.startsWith('XSRF-TOKEN='))?.split('=')[1];
+
+      const res = await fetch('/api/slabs/recognize', {
+        method: 'POST',
+        headers: xsrf ? {'X-XSRF-TOKEN': xsrf} : undefined,
+        body: fd
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data) {
+        setStatus('Hata: ' + res.status + ' ' + res.statusText, 'err');
+        return;
+      }
+
+      jobCell.textContent = data.jobId ?? '—';
+      detCell.textContent = data.detectedCount ?? (data.items?.length ?? data.raw?.items?.length ?? 0);
+      saveCell.textContent = data.savedCount ?? 0;
+
+      let items = [];
+      if (Array.isArray(data.items)) {
+        items = data.items.map(x => ({
+          roiIndex: x.roiIndex ?? x.roi_index ?? null,
+          text: x.text ?? '',
+          lvdt: parseLvdt(x.text)
+        }));
+      } else if (data.raw && Array.isArray(data.raw.items)) {
+        items = data.raw.items.map(x => ({
+          roiIndex: x.roi_index ?? null,
+          text: x.text ?? '',
+          lvdt: parseLvdt(x.text)
+        }));
+      }
+      renderDetections(items);
+
+      setStatus('Tamamlandı', 'ok');
+
+    } catch (err) {
+      setStatus('İstek başarısız: ' + (err?.message || err), 'err');
+    } finally {
+      btnSpin.classList.add('d-none'); btnSend.disabled = !file;
+    }
+  });
+
+  // Seçileni Kaydet
+  btnSave.addEventListener('click', async () => {
+    const lvdts = getSelectedLvdts();
+    if (!lvdts.length) { setStatus('Seçili LVDT yok.', 'err'); return; }
+
+    try {
+      setStatus('Kaydediliyor…', 'muted');
+
+      const xsrf = (document.cookie || '').split('; ').find(x => x.startsWith('XSRF-TOKEN='))?.split('=')[1];
+      const res = await fetch('/api/slabs/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(xsrf ? {'X-XSRF-TOKEN': xsrf} : {})
+        },
+        body: JSON.stringify({ lvdts })
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data) {
+        setStatus('Kaydet hata: ' + res.status, 'err');
+        return;
+      }
+
+      saveCell.textContent = data.savedCount ?? 0;
+
+      createdBody.innerHTML = '';
+      if (data.created) {
+        for (const [pid, lvdt] of Object.entries(data.created)) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td><code>${pid}</code></td><td>${lvdt}</td>`;
+          createdBody.appendChild(tr);
+        }
+        createdWrap.classList.toggle('d-none', Object.keys(data.created).length === 0);
+      }
+
+      setStatus('Kayıt tamamlandı', 'ok');
+    } catch (e) {
+      setStatus('Kaydet isteği başarısız: ' + (e?.message || e), 'err');
+    }
+  });
+
+  // init
+  resetUI();
+})();
+</script>
+</body>
+</html>

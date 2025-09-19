@@ -1,0 +1,65 @@
+:root{
+        --overlay: rgba(0,0,0,.28);
+        --shadow: 0 10px 24px rgba(0,0,0,.25);
+        --border: #e7eaf0;
+    }
+    html, body { height:100%; background: transparent; overflow:hidden; }
+    /* Arkaplan (blur) + karartma */
+    .bg-wrap{
+        position:fixed; inset:0; z-index:0;
+        background-size: cover; background-position:center; background-repeat:no-repeat;
+        filter: blur(8px) saturate(1.05);
+        animation: bg-blur 900ms ease-out forwards;
+        will-change: filter;
+    }
+    .bg-dim{
+        position:fixed; inset:0; z-index:1;
+        background: var(--overlay);
+        animation: bg-fade 900ms ease-out forwards;
+    }
+    @keyframes bg-blur{ from{filter: blur(0px) saturate(1.05);} to{filter: blur(8px) saturate(1.05);} }
+    @keyframes bg-fade{ from{background: rgba(0,0,0,.15);} to{background: var(--overlay);} }
+    /* Ortadaki çerçeve: desktop 2 sütun, mobil 1 sütun */
+    .frame{
+        position:fixed; inset:15%;
+        background:#ffffff; border-radius:18px; box-shadow: var(--shadow);
+        display:grid; grid-template-columns: 1.2fr 3.8fr;
+        overflow:hidden;
+        transform: scale(1.05); opacity:0;
+        animation: frame-in 600ms cubic-bezier(.2,.8,.2,1) 150ms forwards;
+        z-index:2;
+    }
+    @keyframes frame-in{ from{transform: scale(1.10); opacity:.0;} to{transform: scale(1.00); opacity:1;} }
+    /* Sol menü (desktop’ta görünür) */
+    .left{
+        background: linear-gradient(180deg,#fbfbfe,#f3f5fa);
+        border-right:1px solid var(--border); padding:20px;
+        display:flex; flex-direction:column; gap:12px;
+    }
+    .left .top-actions{display:flex; flex-direction:column; gap:10px;}
+    .spacer{flex:1;}
+    /* Sağ içerik */
+    .right{ padding:24px; overflow:auto; display:flex; flex-direction:column; gap:16px; }
+    .title{ margin:0; font-weight:800; letter-spacing:.2px; }
+    .sub{ color:#5a6472; margin:0; }
+    /* Mobil üst toolbar (desktop’ta gizli) */
+    .topbar{
+        position:sticky; top:0; z-index:3;
+        display:none; /* desktop: kapalı */
+        align-items:center; gap:8px; padding:8px 12px;
+        background: rgba(255,255,255,.85); backdrop-filter: saturate(1.2) blur(8px);
+        border-bottom:1px solid var(--border);
+        margin:-24px -24px 12px -24px; /* right bölümündeki padding’i dengele */
+    }
+    .topbar .btn { padding:.25rem .5rem; }
+    .topbar .btn i { margin-right:.35rem; }
+    /* Kartlar / animasyon */
+    .card-anim{ transform: translateY(8px); opacity:0; animation: card-in 480ms ease-out 240ms forwards; }
+    @keyframes card-in{ to{ transform: translateY(0); opacity:1; } }
+    .fade-away{ transition: opacity 600ms ease; }
+    /* Mobil düzen */
+    @media (max-width: 992px){
+        .frame{ inset:8%; grid-template-columns: 1fr; }
+        .left{ display:none; }        /* yan menüyü gizle */
+        .topbar{ display:flex; }      /* üst ince barı aç */
+    }
