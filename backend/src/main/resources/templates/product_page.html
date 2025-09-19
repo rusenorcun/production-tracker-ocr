@@ -242,6 +242,13 @@
       plates:    "/api/plates/"
     };
 
+    const bulkDeleteEndpoints = {
+      products:  "/api/products/bulk-delete",
+      cold_coil: "/api/cold_coil/bulk-delete",
+      hot_coil:  "/api/hot_coil/bulk-delete",
+      plates:    "/api/plates/bulk-delete"
+    };
+
     /* ========== UI yardımcıları ========== */
     function updateActionButtons(){
       if (selectedIds.size > 0) {
@@ -534,8 +541,14 @@
       const ok = confirm(`${ids.length} kayıt silinecek. Emin misiniz?`);
       if (!ok) return;
 
+      const bulkUrl = bulkDeleteEndpoints[currentTable];
+      if (!bulkUrl) {
+        notify('error', 'Toplu silme uç noktası bu tablo için tanımsız.');
+        return;
+      }
+
       $.ajax({
-        url: '/api/products/bulk-delete',
+        url: bulkUrl,
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ ids }),

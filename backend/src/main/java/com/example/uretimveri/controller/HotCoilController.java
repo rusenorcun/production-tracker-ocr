@@ -1,10 +1,13 @@
 package com.example.uretimveri.controller;
 
+import com.example.uretimveri.dto.BulkDeleteRequest;
 import com.example.uretimveri.model.HotCoil;
 import com.example.uretimveri.repository.HotCoilRepository;
 import com.example.uretimveri.service.HotCoilService;
+import com.example.uretimveri.service.ProductService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +19,14 @@ public class HotCoilController {
 
     private final HotCoilService hotCoilService;
     private final HotCoilRepository hotCoilRepository;
+    private final ProductService productService;
 
-    public HotCoilController(HotCoilService hotCoilService, HotCoilRepository hotCoilRepository) {
+    public HotCoilController(HotCoilService hotCoilService,
+                             HotCoilRepository hotCoilRepository,
+                             ProductService productService) {
         this.hotCoilService = hotCoilService;
         this.hotCoilRepository = hotCoilRepository;
+        this.productService = productService;
     }
 
     // DTO ile dön: product/productId karmaşası çözülür
@@ -79,5 +86,16 @@ public class HotCoilController {
         } catch (DataIntegrityViolationException e) {
             return ResponseEntity.status(409).build();  // 409 - ilişkili veri engeli
         }
+    }
+
+    @PostMapping("/bulk-delete")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
+    public ResponseEntity<Void> bulkDelete(@RequestBody BulkDeleteRequest request) {
+        if (request == null || request.getIds() == null || request.getIds().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        // Mevcut ProductService metodunu çağırıyoruz.
+        productService.bulkDeleteProducts(request.getIds());
+        return ResponseEntity.noContent().build();
     }
 }

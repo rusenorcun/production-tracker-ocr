@@ -1,10 +1,13 @@
 package com.example.uretimveri.controller;
 
+import com.example.uretimveri.dto.BulkDeleteRequest;
 import com.example.uretimveri.model.Plates;
 import com.example.uretimveri.repository.PlatesRepository;
 import com.example.uretimveri.service.PlatesService;
+import com.example.uretimveri.service.ProductService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,10 +19,14 @@ public class PlatesController {
 
     private final PlatesService service;
     private final PlatesRepository platesRepository;
+    private final ProductService productService;
 
-    public PlatesController(PlatesService service, PlatesRepository platesRepository) {
+    public PlatesController(PlatesService service,
+                            PlatesRepository platesRepository,
+                            ProductService productService) {
         this.service = service;
         this.platesRepository = platesRepository;
+        this.productService = productService;
     }
 
     @GetMapping("/all")
@@ -77,5 +84,16 @@ public class PlatesController {
         } catch (DataIntegrityViolationException e) {
             return ResponseEntity.status(409).build();  // 409 (ilişkili veri vs.)
         }
+    }
+
+    @PostMapping("/bulk-delete")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
+    public ResponseEntity<Void> bulkDelete(@RequestBody BulkDeleteRequest request) {
+        if (request == null || request.getIds() == null || request.getIds().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        // Mevcut ProductService metodunu çağırıyoruz.
+        productService.bulkDeleteProducts(request.getIds());
+        return ResponseEntity.noContent().build();
     }
 }
