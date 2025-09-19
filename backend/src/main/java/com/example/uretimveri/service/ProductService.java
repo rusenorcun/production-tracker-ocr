@@ -22,18 +22,13 @@ import java.util.List;
 public class ProductService {
 
     private final ProductRepository repo;
-    private final HotCoilRepository hotCoilRepo;
-    private final ColdCoilRepository coldCoilRepo;
-    private final PlatesRepository platesRepo;
+
 
     public ProductService(ProductRepository repo,
                           HotCoilRepository hotCoilRepo,
                           ColdCoilRepository coldCoilRepo,
                           PlatesRepository platesRepo) {
         this.repo = repo;
-        this.hotCoilRepo = hotCoilRepo;
-        this.coldCoilRepo = coldCoilRepo;
-        this.platesRepo = platesRepo;
     }
 
 
