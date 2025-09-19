@@ -13,7 +13,7 @@ To test the OCR system, move the images you want from the "/images" folder to th
 
 To use it via the web application, run the server.py file and then the visual data you will upload via the web application will be processed. The output of each process will be created in the "/outputs_job" directory with a different "jobID" and will be reflected in the web application.
 
-# English
+# English Description
 # Production Data Tracking System (Spring Boot) + Slab OCR Pipeline (Python/YOLOv8s)
 
 This project was developed during an internship at **Isdemir**.  
@@ -95,7 +95,7 @@ frame001.jpg,#0,129456,0.87,12,34,345,210
 
 
 
-# Türkçe
+# Türkçe Açıklama
 # Üretim Verileri Takip Sistemi (Spring Boot) + Slab OCR Pipeline (Python/YOLOv8s)
 
 Isdemir stajı kapsamında geliştirilen bu proje, üretim hattındaki slab numaralarının hem **OCR (YOLOv8s tabanlı)** hem de **manuel giriş** yoluyla kaydedilip yönetilmesini sağlar.  
